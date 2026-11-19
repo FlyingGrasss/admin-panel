@@ -1,0 +1,42 @@
+name: admin-panel
+
+services:
+  app:
+    build:
+      context: .
+    image: admin-panel:latest
+    environment:
+      NODE_ENV: production
+      # Next rewrites /api/* to http://127.0.0.1:4400/api/* inside this container.
+      API_PORT: "4400"
+      API_HOST: "127.0.0.1"
+      # Required: no default password in production.
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD to a strong password}"
+      # Required: browser origin of the panel, e.g. https://admin.example.com
+      APP_ORIGINS: "${APP_ORIGINS:?Set APP_ORIGINS to the public panel origin}"
+      TRUST_PROXY: "${TRUST_PROXY:-}"
+    ports:
+      # Only Next is published; the Express API stays on loopback.
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    stop_grace_period: 20s
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:4400/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+# Reverse proxy example (Caddy), run on the same Docker network or on the host:
+#
+# admin.example.com {
+#     encode zstd gzip
+#     reverse_proxy app:3000
+# }
+#
+# Set APP_ORIGINS=https://admin.example.com and TRUST_PROXY=1 in .env.
+# The API port 4400 is intentionally not published.
+# On Linux, make the bind mount writable by UID 1000 before the first start:
+#   mkdir -p data && sudo chown -R 1000:1000 data
