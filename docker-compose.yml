@@ -17,7 +17,7 @@ services:
       TRUST_PROXY: "${TRUST_PROXY:-}"
     ports:
       # Only Next is published; the Express API stays on loopback.
-      - "3000:3000"
+      - "${HOST_PORT:-3000}:3000"
     volumes:
       - ./data:/app/data
     restart: unless-stopped
